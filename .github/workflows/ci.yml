@@ -9,12 +9,12 @@ on:
       - master
 
 jobs:
-  build: # make sure build/ci work properly
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: npm install
-      - run: npm run all
+  # build: # make sure build/ci work properly
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - run: npm install
+  #     - run: npm run all
 
   test: # make sure the action works on a clean machine without building
     name: ${{ matrix.os.name }} ${{ matrix.os.version }}
@@ -65,6 +65,8 @@ jobs:
         uses: actions/checkout@v2
         with:
           persist-credentials: false
+
+      - run: apt update && apt install -y ovmf
 
       # - name: Setup tmate session
       #   uses: mxschmitt/action-tmate@v3
