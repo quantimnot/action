@@ -86,6 +86,8 @@ export class Action {
       diskImagePath
     ].map(p => p.slice(this.workDirectory.length + 1))
 
+    fs.copyFileSync("/usr/share/ovmf/OVMF.fd", firmwareDirectory)
+
     const vm = await vmPromise
 
     await vm.init()

@@ -93,6 +93,7 @@ class Action {
                 firmwareDirectory,
                 diskImagePath
             ].map(p => p.slice(this.workDirectory.length + 1));
+            fs.copyFileSync("/usr/share/ovmf/OVMF.fd", firmwareDirectory);
             const vm = yield vmPromise;
             yield vm.init();
             try {
