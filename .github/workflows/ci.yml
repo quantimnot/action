@@ -66,13 +66,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - run: sudo apt update && sudo apt install -y ovmf
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
-      # - name: Setup SSH session
-      #   uses: lhotari/action-upterm@v1
+      - name: Setup SSH session
+        uses: lhotari/action-upterm@v1
 
       - name: ${{ matrix.os.name }}
         uses: ./
