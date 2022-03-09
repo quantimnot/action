@@ -816,6 +816,7 @@ class OperatingSystem {
         this.xhyveHypervisorUrl = `${exports.resourceBaseUrl}v0.3.1/xhyve-macos.tar`;
         this.xhyveEfiFirmware = 'uefi.fd';
         this.qemuEfiFirmware = `${OperatingSystem.qemuFirmwareDirectory}/OVMF.fd`;
+        this.qemuBiosFirmware = `${OperatingSystem.qemuFirmwareDirectory}/bios-256k.bin`;
         const hostString = host.toString(host.kind);
         this.resourcesUrl = `${exports.resourceBaseUrl}v0.3.1/resources-${hostString}.tar`;
         this.name = name;
@@ -901,7 +902,7 @@ class FreeBsd extends OperatingSystem {
         if (this.architecture.kind === architecture.Kind.x86_64) {
             const firmwareFile = host.host.canRunXhyve(this.architecture)
                 ? this.xhyveEfiFirmware
-                : this.qemuEfiFirmware;
+                : this.qemuBiosFirmware;
             configuration.firmware = path.join(firmwareDirectory.toString(), firmwareFile);
             return new host.host.vmModule.FreeBsd(hypervisorDirectory, resourcesDirectory, configuration);
         }
@@ -931,7 +932,7 @@ class NetBsd extends Qemu {
     createVirtualMachine(hypervisorDirectory, resourcesDirectory, firmwareDirectory, configuration) {
         core.debug('Creating NetBSD VM');
         if (this.architecture.kind === architecture.Kind.x86_64) {
-            configuration.firmware = path.join(firmwareDirectory.toString(), OperatingSystem.qemuFirmwareDirectory, 'bios-256k.bin');
+            configuration.firmware = path.join(firmwareDirectory.toString(), this.qemuBiosFirmware);
             return new qemu.NetBsd(hypervisorDirectory, resourcesDirectory, configuration);
         }
         else {
