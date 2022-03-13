@@ -161,7 +161,7 @@ class FreeBsd extends OperatingSystem {
   }
 
   get virtualMachineImageReleaseVersion(): string {
-    return 'v0.2.0'
+    return 'v0.2.1'
   }
 
   createVirtualMachine(

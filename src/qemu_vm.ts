@@ -37,6 +37,7 @@ export abstract class Vm extends vm.Vm {
 
       '-display', 'none',
       '-monitor', 'none',
+      '-nographic',
       
       '-boot', 'strict=off',
       /* eslint-disable @typescript-eslint/no-non-null-assertion */

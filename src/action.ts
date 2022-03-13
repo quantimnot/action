@@ -86,11 +86,6 @@ export class Action {
       diskImagePath
     ].map(p => p.slice(this.workDirectory.length + 1))
 
-    let asd = path.join(firmwareDirectory, "share", "qemu")
-    if (!fs.existsSync(asd))
-      fs.mkdirSync(asd, {recursive: true, mode: 0o700})
-    fs.copyFileSync("/usr/share/ovmf/OVMF.fd", path.join(asd, "OVMF.fd"))
-
     const vm = await vmPromise
 
     await vm.init()

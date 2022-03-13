@@ -93,10 +93,6 @@ class Action {
                 firmwareDirectory,
                 diskImagePath
             ].map(p => p.slice(this.workDirectory.length + 1));
-            let asd = path.join(firmwareDirectory, "share", "qemu");
-            if (!fs.existsSync(asd))
-                fs.mkdirSync(asd, { recursive: true, mode: 0o700 });
-            fs.copyFileSync("/usr/share/ovmf/OVMF.fd", path.join(asd, "OVMF.fd"));
             const vm = yield vmPromise;
             yield vm.init();
             try {
@@ -475,7 +471,7 @@ const architectures = (() => {
         cpu: host.kind === host.Kind.darwin ? 'host' : 'qemu64',
         machineType: 'pc',
         accelerator: host.kind === host.Kind.darwin ? vm.Accelerator.hvf : vm.Accelerator.tcg,
-        resourceUrl: `${operating_system_1.resourceBaseUrl}v0.3.1/qemu-system-x86_64-${hostString}.tar`
+        resourceUrl: `${operating_system_1.resourceBaseUrl}v0.4.0-rc3/qemu-system-x86_64-${hostString}.tar`
     });
     return map;
 })();
@@ -654,11 +650,17 @@ class Linux extends Host {
     createDiskFile(size, diskPath) {
         return __awaiter(this, void 0, void 0, function* () {
             yield exec.exec('truncate', ['-s', size, diskPath]);
+            const input = Buffer.from("n\np\n1\n\n\nw\n");
+            // technically, this is partitioning the disk
+            yield exec.exec('fdisk', [diskPath], { input: input });
         });
     }
     createDiskDevice(diskPath) {
         return __awaiter(this, void 0, void 0, function* () {
-            const devicePath = yield (0, utility_1.execWithOutput)('sudo', ['losetup', '-f', '--show', diskPath], { silent: true });
+            // the offset and size limit are retrieved by running:
+            // `sfdisk -d ${diskPath}` and multiple the start and size by 512.
+            // https://checkmk.com/linux-knowledge/mounting-partition-loop-device
+            const devicePath = yield (0, utility_1.execWithOutput)('sudo', ['losetup', '-f', '--show', '--offset', '1048576', '--sizelimit', '40894464', diskPath], { silent: true });
             return devicePath.trim();
         });
     }
@@ -666,7 +668,8 @@ class Linux extends Host {
     partitionDisk(devicePath, _mountName) {
         return __awaiter(this, void 0, void 0, function* () {
             /* eslint-enable  @typescript-eslint/no-unused-vars */
-            yield exec.exec('sudo', ['mkfs.msdos', devicePath]);
+            // technically, this is creating the filesystem on the partition
+            yield exec.exec('sudo', ['mkfs.fat', '-F32', devicePath]);
         });
     }
     mountDisk(devicePath, mountPath) {
@@ -895,7 +898,7 @@ class FreeBsd extends OperatingSystem {
         });
     }
     get virtualMachineImageReleaseVersion() {
-        return 'v0.2.0';
+        return 'v0.2.1';
     }
     createVirtualMachine(hypervisorDirectory, resourcesDirectory, firmwareDirectory, configuration) {
         core.debug('Creating FreeBSD VM');
@@ -1065,6 +1068,7 @@ class Vm extends vm.Vm {
             '-netdev', `user,id=user.0,hostfwd=tcp::${this.configuration.ssHostPort}-:22`,
             '-display', 'none',
             '-monitor', 'none',
+            '-nographic',
             '-boot', 'strict=off',
             /* eslint-disable @typescript-eslint/no-non-null-assertion */
             '-bios', this.configuration.firmware.toString()
@@ -1194,7 +1198,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Vm = exports.Accelerator = void 0;
 const path = __importStar(__webpack_require__(5622));
-const child_process_1 = __webpack_require__(3129);
 const core = __importStar(__webpack_require__(2186));
 const exec = __importStar(__webpack_require__(1514));
 const wait_1 = __webpack_require__(5817);
@@ -1219,16 +1222,17 @@ class Vm {
         return __awaiter(this, void 0, void 0, function* () {
             core.info('Booting VM');
             core.debug(this.command.join(' '));
-            this.vmProcess = (0, child_process_1.execFile)('sudo', this.command, (error, stdout, stderr) => {
-                var _a, _b, _c;
-                if (error) {
-                    core.debug(`Stack: ${(_a = error.stack) !== null && _a !== void 0 ? _a : 'no stack'}`);
-                    core.debug(`Error code: ${((_b = error.code) !== null && _b !== void 0 ? _b : -1).toString()}`);
-                    core.debug(`Signal recieved: ${(_c = error.signal) !== null && _c !== void 0 ? _c : 'no signal'}`);
-                }
-                core.debug(`Stdout: ${stdout}`);
-                core.debug(`Stderr: ${stderr}`);
-            });
+            exec.exec('sudo', this.command, { silent: false });
+            /*this.vmProcess = execFile('sudo', this.command, (error, stdout, stderr) => {
+              if (error) {
+                core.debug(`Stack: ${error.stack ?? 'no stack'}`)
+                core.debug(`Error code: ${(error.code ?? -1).toString()}`)
+                core.debug(`Signal recieved: ${error.signal ?? 'no signal'}`)
+              }
+        
+              core.debug(`Stdout: ${stdout}`)
+              core.debug(`Stderr: ${stderr}`)
+            })*/
             // this.vmProcess = spawn('sudo', this.command, {detached: false})
             this.ipAddress = yield this.getIpAddress();
         });
